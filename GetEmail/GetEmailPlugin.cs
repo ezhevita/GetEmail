@@ -18,11 +18,26 @@ using SteamKit2;
 namespace GetEmail {
 	[Export(typeof(IPlugin))]
 	[UsedImplicitly]
-	public class GetEmail : IBot, IBotSteamClient, IBotCommand {
+	public class GetEmailPlugin : IBot, IBotSteamClient, IBotCommand {
 		private readonly ConcurrentDictionary<Bot, MailHandler> RegisteredHandlers = new();
 
 		public void OnLoaded() {
-			ASF.ArchiLogger.LogGenericInfo(nameof(GetEmail) + " by Vital7 | Support & source code: https://github.com/Vital7/GetEmail");
+			Assembly assembly = Assembly.GetExecutingAssembly();
+			string repository = assembly
+				.GetCustomAttributes<AssemblyMetadataAttribute>()
+				.First(x => x.Key == "RepositoryUrl")
+				.Value ?? throw new InvalidOperationException(nameof(AssemblyMetadataAttribute));
+
+			const string git = ".git";
+			int index = repository.IndexOf(git, StringComparison.Ordinal);
+			if (index >= 0) {
+				repository = repository[..(index + 1)];
+			}
+
+			string company = assembly
+				.GetCustomAttribute<AssemblyCompanyAttribute>()?.Company ?? throw new InvalidOperationException(nameof(AssemblyCompanyAttribute));
+
+			ASF.ArchiLogger.LogGenericInfo(Name + " by " + company + " | Support & source code: " + repository);
 		}
 
 		public string Name => nameof(GetEmail);
@@ -36,9 +51,22 @@ namespace GetEmail {
 			RegisteredHandlers.TryAdd(bot, new MailHandler());
 		}
 
+		[CLSCompliant(false)]
 		public async Task<string?> OnBotCommand(Bot bot, ulong steamID, string message, string[] args) {
+			if (bot == null) {
+				throw new ArgumentNullException(nameof(bot));
+			}
+
+			if (string.IsNullOrEmpty(message)) {
+				throw new ArgumentNullException(nameof(message));
+			}
+
+			if (args == null) {
+				throw new ArgumentNullException(nameof(args));
+			}
+
 			return args[0].ToUpperInvariant() switch {
-				"EMAIL" when args.Length > 1 => await ResponseEmail(steamID, Utilities.GetArgsAsText(args, 1, ",")),
+				"EMAIL" when args.Length > 1 => await ResponseEmail(steamID, Utilities.GetArgsAsText(args, 1, ",")).ConfigureAwait(false),
 				"EMAIL" => ResponseEmail(bot, steamID),
 				_ => null
 			};
