@@ -19,36 +19,28 @@ namespace GetEmail {
 	[Export(typeof(IPlugin))]
 	[UsedImplicitly]
 	public class GetEmailPlugin : IBot, IBotSteamClient, IBotCommand {
-		private readonly ConcurrentDictionary<Bot, MailHandler> RegisteredHandlers = new();
+		private readonly ConcurrentDictionary<Bot, MailHandler> registeredHandlers = new();
 
-		public void OnLoaded() {
-			Assembly assembly = Assembly.GetExecutingAssembly();
-			string repository = assembly
-				.GetCustomAttributes<AssemblyMetadataAttribute>()
-				.First(x => x.Key == "RepositoryUrl")
-				.Value ?? throw new InvalidOperationException(nameof(AssemblyMetadataAttribute));
-
-			const string git = ".git";
-			int index = repository.IndexOf(git, StringComparison.Ordinal);
-			if (index >= 0) {
-				repository = repository[..(index + 1)];
-			}
-
-			string company = assembly
-				.GetCustomAttribute<AssemblyCompanyAttribute>()?.Company ?? throw new InvalidOperationException(nameof(AssemblyCompanyAttribute));
-
-			ASF.ArchiLogger.LogGenericInfo(Name + " by " + company + " | Support & source code: " + repository);
+		public Task OnLoaded() {
+			ASF.ArchiLogger.LogGenericInfo($"{Name} by Vital7 | Support & source code: https://github.com/Vital7/{Name}");
+			return Task.CompletedTask;
 		}
 
 		public string Name => nameof(GetEmail);
 		public Version Version => Assembly.GetExecutingAssembly().GetName().Version ?? throw new InvalidOperationException(nameof(Version));
 
-		public void OnBotDestroy(Bot bot) {
-			RegisteredHandlers.TryRemove(bot, out _);
+		public Task OnBotDestroy(Bot bot)
+		{
+			registeredHandlers.TryRemove(bot, out _);
+
+			return Task.CompletedTask;
 		}
 
-		public void OnBotInit(Bot bot) {
-			RegisteredHandlers.TryAdd(bot, new MailHandler());
+		public Task OnBotInit(Bot bot)
+		{
+			registeredHandlers.TryAdd(bot, new MailHandler());
+
+			return Task.CompletedTask;
 		}
 
 		[CLSCompliant(false)]
@@ -72,17 +64,17 @@ namespace GetEmail {
 			};
 		}
 
-		public void OnBotSteamCallbacksInit(Bot bot, CallbackManager callbackManager) { }
+		public Task OnBotSteamCallbacksInit(Bot bot, CallbackManager callbackManager) => Task.CompletedTask;
 
-		public IReadOnlyCollection<ClientMsgHandler> OnBotSteamHandlersInit(Bot bot) => new[] { RegisteredHandlers[bot] };
+		public Task<IReadOnlyCollection<ClientMsgHandler>?> OnBotSteamHandlersInit(Bot bot) => Task.FromResult<IReadOnlyCollection<ClientMsgHandler>?>(new[] {registeredHandlers[bot]});
 
 		private string? ResponseEmail(Bot bot, ulong steamID) {
 			if (!bot.HasAccess(steamID, BotConfig.EAccess.Master)) {
 				return null;
 			}
 
-			if (!RegisteredHandlers.TryGetValue(bot, out MailHandler? handler)) {
-				return bot.Commands.FormatBotResponse(string.Format(CultureInfo.CurrentCulture, Strings.WarningFailedWithError, nameof(RegisteredHandlers)));
+			if (!registeredHandlers.TryGetValue(bot, out MailHandler? handler)) {
+				return bot.Commands.FormatBotResponse(string.Format(CultureInfo.CurrentCulture, Strings.WarningFailedWithError, nameof(registeredHandlers)));
 			}
 
 			return bot.Commands.FormatBotResponse(string.IsNullOrEmpty(handler.EmailAddress) ? Strings.WarningFailed : handler.EmailAddress!);
