@@ -7,6 +7,6 @@ ASF plugin to get emails of the accounts.
 
 ## Commands
 
-Command | Access | Description
---- | --- | ---
-`email [Bots]` | `Master` | Get email linked to the given bot instances.
+| Command        | Access   | Description                                  |
+|----------------|----------|----------------------------------------------|
+| `email [Bots]` | `Master` | Get email linked to the given bot instances. |
