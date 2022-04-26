@@ -31,18 +31,6 @@ public class GetEmailPlugin : IBot, IBotSteamClient, IBotCommand2 {
 
 	public async Task<string?> OnBotCommand(Bot bot, EAccess access, string message, string[] args, ulong steamID = 0)
 	{
-		if (bot == null) {
-			throw new ArgumentNullException(nameof(bot));
-		}
-
-		if (string.IsNullOrEmpty(message)) {
-			throw new ArgumentNullException(nameof(message));
-		}
-
-		if (args == null) {
-			throw new ArgumentNullException(nameof(args));
-		}
-
 		return args[0].ToUpperInvariant() switch {
 			"EMAIL" when args.Length > 1 => await ResponseEmail(access, Utilities.GetArgsAsText(args, 1, ","), steamID).ConfigureAwait(false),
 			"EMAIL" => ResponseEmail(bot, access),
