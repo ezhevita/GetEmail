@@ -19,7 +19,7 @@ namespace GetEmail;
 [Export(typeof(IPlugin))]
 [UsedImplicitly]
 public class GetEmailPlugin : IBot, IBotSteamClient, IBotCommand2 {
-	private readonly ConcurrentDictionary<Bot, MailHandler> registeredHandlers = new();
+	private readonly ConcurrentDictionary<Bot, MailHandler> _registeredHandlers = new();
 
 	public Task OnLoaded() {
 		ASF.ArchiLogger.LogGenericInfo($"{Name} by ezhevita | Support & source code: https://github.com/ezhevita/{Name}");
@@ -31,17 +31,9 @@ public class GetEmailPlugin : IBot, IBotSteamClient, IBotCommand2 {
 
 	public async Task<string?> OnBotCommand(Bot bot, EAccess access, string message, string[] args, ulong steamID = 0)
 	{
-		if (bot == null) {
-			throw new ArgumentNullException(nameof(bot));
-		}
-
-		if (string.IsNullOrEmpty(message)) {
-			throw new ArgumentNullException(nameof(message));
-		}
-
-		if (args == null) {
-			throw new ArgumentNullException(nameof(args));
-		}
+		ArgumentNullException.ThrowIfNull(bot);
+		ArgumentNullException.ThrowIfNull(args);
+		ArgumentException.ThrowIfNullOrEmpty(message);
 
 		return args[0].ToUpperInvariant() switch {
 			"EMAIL" when args.Length > 1 => await ResponseEmail(access, Utilities.GetArgsAsText(args, 1, ","), steamID).ConfigureAwait(false),
@@ -52,36 +44,36 @@ public class GetEmailPlugin : IBot, IBotSteamClient, IBotCommand2 {
 
 	public Task OnBotDestroy(Bot bot)
 	{
-		registeredHandlers.TryRemove(bot, out _);
+		_registeredHandlers.TryRemove(bot, out _);
 
 		return Task.CompletedTask;
 	}
 
 	public Task OnBotInit(Bot bot)
 	{
-		registeredHandlers.TryAdd(bot, new MailHandler());
+		_registeredHandlers.TryAdd(bot, new MailHandler());
 
 		return Task.CompletedTask;
 	}
 
 	public Task OnBotSteamCallbacksInit(Bot bot, CallbackManager callbackManager) => Task.CompletedTask;
 
-	public Task<IReadOnlyCollection<ClientMsgHandler>?> OnBotSteamHandlersInit(Bot bot) => Task.FromResult<IReadOnlyCollection<ClientMsgHandler>?>(new[] {registeredHandlers[bot]});
+	public Task<IReadOnlyCollection<ClientMsgHandler>?> OnBotSteamHandlersInit(Bot bot) => Task.FromResult<IReadOnlyCollection<ClientMsgHandler>?>(new[] {_registeredHandlers[bot]});
 
 	private string? ResponseEmail(Bot bot, EAccess access) {
 		if (access < EAccess.Master) {
 			return null;
 		}
 
-		if (!registeredHandlers.TryGetValue(bot, out MailHandler? handler)) {
-			return bot.Commands.FormatBotResponse(string.Format(CultureInfo.CurrentCulture, Strings.WarningFailedWithError, nameof(registeredHandlers)));
+		if (!_registeredHandlers.TryGetValue(bot, out var handler)) {
+			return bot.Commands.FormatBotResponse(string.Format(CultureInfo.CurrentCulture, Strings.WarningFailedWithError, nameof(_registeredHandlers)));
 		}
 
 		return bot.Commands.FormatBotResponse(string.IsNullOrEmpty(handler.EmailAddress) ? Strings.WarningFailed : handler.EmailAddress!);
 	}
 
 	private async Task<string?> ResponseEmail(EAccess access, string botNames, ulong steamID) {
-		HashSet<Bot>? bots = Bot.GetBots(botNames);
+		var bots = Bot.GetBots(botNames);
 		if ((bots == null) || (bots.Count == 0)) {
 			return access >= EAccess.Owner ? Commands.FormatStaticResponse(string.Format(CultureInfo.CurrentCulture, Strings.BotNotFound, botNames)) : null;
 		}
