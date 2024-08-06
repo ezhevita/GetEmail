@@ -14,4 +14,9 @@
 		<SignAssembly>false</SignAssembly>
 	</PropertyGroup>
 
+	<!-- Blocked by https://github.com/dotnet/roslyn-analyzers/issues/6579; waiting for `Public=true` -->
+	<PropertyGroup>
+ 		<NoWarn>$(NoWarn),CA1863</NoWarn>
+ 	</PropertyGroup>
+
 </Project>
