@@ -1,5 +1,4 @@
 <Project>
-
 	<PropertyGroup>
 		<ApplicationIcon/>
 		<Authors>ezhevita</Authors>
@@ -18,5 +17,4 @@
 	<PropertyGroup>
  		<NoWarn>$(NoWarn),CA1863</NoWarn>
  	</PropertyGroup>
-
 </Project>
