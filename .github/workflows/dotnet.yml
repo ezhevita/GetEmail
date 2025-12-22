@@ -27,7 +27,7 @@ jobs:
         run: dotnet publish -c Release -f net10.0 -o out/${{ github.event.repository.name }}
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ github.event.repository.name }}
           path: out/${{ github.event.repository.name }}
@@ -39,7 +39,7 @@ jobs:
 
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v6.0.0
+        uses: actions/download-artifact@v7.0.0
         with:
           name: ${{ github.event.repository.name }}
           path: out/${{ github.event.repository.name }}
