@@ -4,7 +4,7 @@ using SteamKit2.Internal;
 
 namespace GetEmail;
 
-public class MailHandler : ClientMsgHandler {
+internal sealed class MailHandler : ClientMsgHandler {
 	public string? EmailAddress { get; private set; }
 
 	public override void HandleMsg(IPacketMsg packetMsg) {

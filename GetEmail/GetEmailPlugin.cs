@@ -5,6 +5,7 @@ using System.Composition;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using ArchiSteamFarm.Core;
 using ArchiSteamFarm.Localization;
@@ -18,18 +19,19 @@ namespace GetEmail;
 
 [Export(typeof(IPlugin))]
 [UsedImplicitly]
-public class GetEmailPlugin : IBot, IBotSteamClient, IBotCommand2 {
+internal sealed class GetEmailPlugin : IBot, IBotSteamClient, IBotCommand, IGitHubPluginUpdates {
 	private readonly ConcurrentDictionary<Bot, MailHandler> _registeredHandlers = new();
 
-	public Task OnLoaded() {
+	public Task OnLoaded(CancellationToken cancellationToken) {
 		ASF.ArchiLogger.LogGenericInfo($"{Name} by ezhevita | Support & source code: https://github.com/ezhevita/{Name}");
 		return Task.CompletedTask;
 	}
 
 	public string Name => nameof(GetEmail);
+	public string RepositoryName => "ezhevita/GetEmail";
 	public Version Version => Assembly.GetExecutingAssembly().GetName().Version ?? throw new InvalidOperationException(nameof(Version));
 
-	public async Task<string?> OnBotCommand(Bot bot, EAccess access, string message, string[] args, ulong steamID = 0)
+	public async Task<string?> OnBotCommand(Bot bot, EBotUserAccess access, string message, string[] args, ulong steamID = 0, CancellationToken cancellationToken = default)
 	{
 		ArgumentNullException.ThrowIfNull(bot);
 		ArgumentNullException.ThrowIfNull(args);
@@ -42,26 +44,26 @@ public class GetEmailPlugin : IBot, IBotSteamClient, IBotCommand2 {
 		};
 	}
 
-	public Task OnBotDestroy(Bot bot)
+	public Task OnBotDestroy(Bot bot, CancellationToken cancellationToken)
 	{
 		_registeredHandlers.TryRemove(bot, out _);
 
 		return Task.CompletedTask;
 	}
 
-	public Task OnBotInit(Bot bot)
+	public Task OnBotInit(Bot bot, CancellationToken cancellationToken)
 	{
 		_registeredHandlers.TryAdd(bot, new MailHandler());
 
 		return Task.CompletedTask;
 	}
 
-	public Task OnBotSteamCallbacksInit(Bot bot, CallbackManager callbackManager) => Task.CompletedTask;
+	public Task OnBotSteamCallbacksInit(Bot bot, CallbackManager callbackManager, CancellationToken cancellationToken) => Task.CompletedTask;
 
-	public Task<IReadOnlyCollection<ClientMsgHandler>?> OnBotSteamHandlersInit(Bot bot) => Task.FromResult<IReadOnlyCollection<ClientMsgHandler>?>(new[] {_registeredHandlers[bot]});
+	public Task<IReadOnlyCollection<ClientMsgHandler>?> OnBotSteamHandlersInit(Bot bot, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyCollection<ClientMsgHandler>?>([_registeredHandlers[bot]]);
 
-	private string? ResponseEmail(Bot bot, EAccess access) {
-		if (access < EAccess.Master) {
+	private string? ResponseEmail(Bot bot, EBotUserAccess access) {
+		if (access < EBotUserAccess.Master) {
 			return null;
 		}
 
@@ -72,10 +74,10 @@ public class GetEmailPlugin : IBot, IBotSteamClient, IBotCommand2 {
 		return bot.Commands.FormatBotResponse(string.IsNullOrEmpty(handler.EmailAddress) ? Strings.WarningFailed : handler.EmailAddress!);
 	}
 
-	private async Task<string?> ResponseEmail(EAccess access, string botNames, ulong steamID) {
+	private async Task<string?> ResponseEmail(EBotUserAccess access, string botNames, ulong steamID) {
 		var bots = Bot.GetBots(botNames);
 		if ((bots == null) || (bots.Count == 0)) {
-			return access >= EAccess.Owner ? Commands.FormatStaticResponse(string.Format(CultureInfo.CurrentCulture, Strings.BotNotFound, botNames)) : null;
+			return access >= EBotUserAccess.Owner ? Commands.FormatStaticResponse(string.Format(CultureInfo.CurrentCulture, Strings.BotNotFound, botNames)) : null;
 		}
 
 		IList<string?> results = await Utilities.InParallel(bots.Select(bot => Task.Run(() => ResponseEmail(bot, Commands.GetProxyAccess(bot, access, steamID))))).ConfigureAwait(false);
